@@ -1,55 +1,113 @@
 import { Injectable } from '@nestjs/common';
+import AWS from 'aws-sdk';
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 
-import { v4 } from 'uuid';
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
-import { Cart } from '../models';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import Carts from '../../database/entities/carts.entity';
+import { Cart } from '../models/index';
+import CartItems from '../../database/entities/cart_items.entity';
 
 @Injectable()
 export class CartService {
-  private userCarts: Record<string, Cart> = {};
+  constructor(
+    @InjectRepository(Carts)
+    private readonly cartRepo: Repository<Carts>,
+    @InjectRepository(CartItems)
+    private readonly cartItemsRepo: Repository<CartItems>,
+  ) {}
 
-  findByUserId(userId: string): Cart {
-    return this.userCarts[ userId ];
-  }
-
-  createByUserId(userId: string) {
-    const id = v4(v4());
-    const userCart = {
-      id,
-      items: [],
+  async getProductsByIds(ids: string[]): Promise<any[]> {
+    const params: DocumentClient.BatchGetItemInput = {
+      RequestItems: {
+        products: {
+          Keys: ids.map(id => ({ id })),
+        },
+      },
     };
 
-    this.userCarts[ userId ] = userCart;
-
-    return userCart;
+    const response = await dynamoDb.batchGet(params).promise();
+    return response.Responses.products;
   }
 
-  findOrCreateByUserId(userId: string): Cart {
-    const userCart = this.findByUserId(userId);
+  async findByUserId(userId: string): Promise<Cart> {
+    try {
+      const cartEntity = await this.cartRepo.findOne({
+        where: { user_id: userId },
+        relations: ['items'],
+      });
+
+      return {
+        id: cartEntity.id,
+        items: await this.getProductsByIds(
+          cartEntity.items.map(item => item.product_id),
+        ),
+      };
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  async createByUserId(userId: string) {
+    try {
+      const cartCreateResult = await this.cartRepo.insert({
+        user_id: userId,
+        status: 'OPEN',
+      });
+
+      return {
+        id: cartCreateResult.raw[0].id,
+        items: [],
+      };
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  async findOrCreateByUserId(userId: string): Promise<Cart> {
+    const userCart = await this.findByUserId(userId);
 
     if (userCart) {
       return userCart;
     }
 
-    return this.createByUserId(userId);
+    return await this.createByUserId(userId);
   }
 
-  updateByUserId(userId: string, { items }: Cart): Cart {
-    const { id, ...rest } = this.findOrCreateByUserId(userId);
+  async updateByUserId(userId: string, { items }: Cart): Promise<Cart> {
+    const { id, ...rest } = await this.findOrCreateByUserId(userId);
 
-    const updatedCart = {
-      id,
-      ...rest,
-      items: [ ...items ],
+    try {
+      await this.cartRepo.update(
+        {
+          id,
+        },
+        {
+          items: items.map(i => ({
+            product_id: i.product.id,
+            count: i.count,
+          })),
+        },
+      );
+
+      return {
+        id,
+        items,
+      };
+    } catch (e) {
+      throw e;
     }
-
-    this.userCarts[ userId ] = { ...updatedCart };
-
-    return { ...updatedCart };
   }
 
-  removeByUserId(userId): void {
-    this.userCarts[ userId ] = null;
+  async removeByUserId(userId): Promise<void> {
+    try {
+      await this.cartRepo.delete({
+        user_id: userId,
+      });
+    } catch (e) {
+      throw e;
+    }
   }
-
 }

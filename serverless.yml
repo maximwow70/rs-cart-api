@@ -1,0 +1,52 @@
+service: cart-service
+plugins:
+  - serverless-offline
+  - serverless-migrate-plugin
+  - serverless-dotenv-plugin
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1
+  environment:
+    PGHOST: ${self:custom.dotenvVars.PGHOST, env:PGHOST, ''}
+    PGUSER: ${self:custom.dotenvVars.PGUSER, env:PGUSER, ''}
+    PGDATABASE: ${self:custom.dotenvVars.PGDATABASE, env:PGDATABASE, ''}
+    PGPASSWORD: ${self:custom.dotenvVars.PGPASSWORD, env:PGPASSWORD, ''}
+    PGPORT: ${self:custom.dotenvVars.PGPORT, env:PGPORT, ''}
+
+custom:
+  dotenvVars: ${file(config.js)}
+  serverless-offline:
+    httpPort: 4100
+  migrate:
+    stateFile: .migrate2
+    lastRunIndicator: <*****
+    noDescriptionText: '?'
+    ignoreMissing: true
+    dateFormat: 'yyyy-MM-dd hh:mm:ssZ'
+    migrationDir: 'migrations'
+
+functions:
+  main:
+    handler: dist/main.handler
+    events:
+      - http:
+          method: ANY
+          path: /
+      - http:
+          method: ANY
+          path: '{proxy+}'
+
+resources:
+  Resources:
+    PostgreSqlRDSInstance:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        MasterUsername: ${self:custom.dotenvVars.PGUSER, env:PGUSER, ''}
+        MasterUserPassword: ${self:custom.dotenvVars.PGPASSWORD, env:PGPASSWORD, ''}
+        AllocatedStorage: 20
+        DBName: ${self:custom.dotenvVars.PGDATABASE, env:PGDATABASE, ''}
+        DBInstanceClass: db.t4g.micro
+        Engine: postgres
+        PubliclyAccessible: true
