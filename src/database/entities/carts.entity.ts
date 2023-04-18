@@ -5,7 +5,7 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import CartItems from './cart_items.entity';
+import CartItems from './cart-items.entity';
 
 @Entity('carts')
 class Carts {
