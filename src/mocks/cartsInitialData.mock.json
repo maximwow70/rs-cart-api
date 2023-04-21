@@ -1,0 +1,35 @@
+{
+    "carts": [
+        {
+            "id": "e91a3e7e-2aeb-48e2-a2cb-5a5d5cf5d882",
+            "user_id": "678c583a-76de-4f85-a78d-46f52779f6f1",
+            "created_at": "2023-04-05",
+            "updated_at": "2023-04-06",
+            "status": "OPEN"
+        },
+        {
+            "id": "60f33ec4-5406-4910-a59e-99ec10686e81",
+            "user_id": "678c583a-76de-4f85-a78d-46f52779f6f1",
+            "created_at": "2023-04-07",
+            "updated_at": "2023-04-07",
+            "status": "ORDERED"
+        }
+    ],
+    "cart_items": [
+        {
+            "cart_id": "e91a3e7e-2aeb-48e2-a2cb-5a5d5cf5d882",
+            "product_id": "ee5d7e98-967a-48d1-82e6-06e42ccbb89d",
+            "count": 2
+        },
+        {
+            "cart_id": "e91a3e7e-2aeb-48e2-a2cb-5a5d5cf5d882",
+            "product_id": "035c90bb-9d9a-4d8b-a6e8-6d55f99a82c6",
+            "count": 1
+        },
+        {
+            "cart_id": "60f33ec4-5406-4910-a59e-99ec10686e81",
+            "product_id": "f0bb3be1-bb28-4bfa-8b97-4f3c4ef18f77",
+            "count": 3
+        }
+    ]
+}
